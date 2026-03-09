@@ -1,0 +1,7 @@
+{
+  "name": "Chorus",
+  "power_register": 125,
+  "power_bit": 5,
+  "rate_register": 60,
+  "depth_register": 61
+}

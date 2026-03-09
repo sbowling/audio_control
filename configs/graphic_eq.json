@@ -1,0 +1,7 @@
+{
+  "name": "Graphic EQ",
+  "power_register": 125,
+  "power_bit": 0,
+  "left_channel_registers": [20, 22, 24, 26, 28, 30, 32, 34, 36, 38],
+  "right_channel_registers": [21, 23, 25, 27, 29, 31, 33, 35, 37, 39]
+}

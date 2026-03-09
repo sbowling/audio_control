@@ -1,0 +1,15 @@
+{
+  "name": "Parametric EQ",
+  "power_register": 125,
+  "power_bit": 1,
+  "left_channel": {
+    "high_section": { "gain_reg": 11, "freq_reg": 12 },
+    "mid_section": { "gain_reg": 1, "freq_reg": 2, "q_reg": 3 },
+    "low_section": { "gain_reg": 7, "freq_reg": 8 }
+  },
+  "right_channel": {
+    "high_section": { "gain_reg": 13, "freq_reg": 14 },
+    "mid_section": { "gain_reg": 4, "freq_reg": 5, "q_reg": 6 },
+    "low_section": { "gain_reg": 9, "freq_reg": 10 }
+  }
+}
