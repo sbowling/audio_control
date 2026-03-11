@@ -4,7 +4,10 @@ from pymodbus.client import ModbusSerialClient
 from effects.graphic_eq import GraphicEQ
 from effects.parametric_eq import ParametricEQ
 from effects.chorus import Chorus
-from effects.other_effects import Phaser, Wah, Echo, Flanger, Reverb
+from effects.flanger import Flanger
+from effects.phaser import Phaser
+from effects.wah import Wah
+from effects.other_effects import Echo, Reverb
 import os
 import threading
 

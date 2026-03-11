@@ -3,18 +3,17 @@ import threading
 from .base_effect import EffectBase
 from .utils import RotaryKnob
 
-class Chorus(EffectBase):
-    def __init__(self, master, client, config_file="configs/chorus.json"):
+class Phaser(EffectBase):
+    def __init__(self, master, client, config_file="configs/phaser.json"):
         super().__init__(master, client, config_file)
         
         # --- Stompbox UI Setup ---
         self.geometry("350x550")
-        self.configure(fg_color="#4169E1") # Royal Blue (classic Chorus color)
+        self.configure(fg_color="#8A2BE2") # Blue Violet (Phaser color)
         self.resizable(False, False)
         
         # Hide standard header
         self.header_frame.destroy() 
-        self.content_frame.destroy() # We'll use our own layout
         
         self.updating_from_device = False
         self.knobs = []
@@ -27,32 +26,38 @@ class Chorus(EffectBase):
         self.grid_rowconfigure(3, weight=0) # Switch
 
         # Title
-        ctk.CTkLabel(self, text="dsPIC33A Chorus", font=("Impact", 24), text_color="black").grid(row=0, column=0, pady=(20, 10))
+        ctk.CTkLabel(self, text="Phaser", font=("Impact", 24), text_color="black").grid(row=0, column=0, pady=(20, 10))
 
         # Knobs Container
         self.knob_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.knob_frame.grid(row=1, column=0, sticky="n", pady=10)
         
         # Rate Knob
-        self.create_knob(self.knob_frame, "RATE", self.config.get("rate_register", 60))
+        self.create_knob(self.knob_frame, "RATE", self.config.get("rate_register", 80))
         
         # Spacer
         ctk.CTkLabel(self.knob_frame, text="   ").pack(side="left")
         
         # Depth Knob
-        self.create_knob(self.knob_frame, "DEPTH", self.config.get("depth_register", 61))
+        self.create_knob(self.knob_frame, "DEPTH", self.config.get("depth_register", 81))
+
+        # Spacer
+        ctk.CTkLabel(self.knob_frame, text="   ").pack(side="left")
+
+        # Feedback Knob
+        self.create_knob(self.knob_frame, "FEEDBACK", self.config.get("feedback_register", 82))
 
         # LED Indicator
         self.led_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.led_frame.grid(row=2, column=0, pady=(5, 15))
         
-        self.led_canvas = ctk.CTkCanvas(self.led_frame, width=20, height=20, bg="#4169E1", highlightthickness=0)
+        self.led_canvas = ctk.CTkCanvas(self.led_frame, width=20, height=20, bg="#8A2BE2", highlightthickness=0)
         self.led_id = self.led_canvas.create_oval(4, 4, 16, 16, fill="#330000", outline="#550000") # Off state
         self.led_canvas.pack()
         
         ctk.CTkLabel(self.led_frame, text="CHECK", font=("Arial", 10, "bold"), text_color="white").pack()
 
-        # Bottom Section (Foot Switch) - Just the button
+        # Bottom Section (Foot Switch)
         self.switch_frame = ctk.CTkFrame(self, fg_color="transparent", corner_radius=10)
         self.switch_frame.grid(row=3, column=0, padx=20, pady=(0, 20), sticky="s")
         
@@ -72,13 +77,7 @@ class Chorus(EffectBase):
 
     def create_knob(self, parent, label, reg):
         frame = ctk.CTkFrame(parent, fg_color="transparent")
-        frame.pack(side="left", padx=15)
-        
-        # Use our Utils Rotary Knob
-        # Note: We need a unique write scheduler per knob to avoid conflict?
-        # Or we can just use a dictionary to track pending writes.
-        # Let's attach the pending flag to the knob object or use a helper class.
-        # Actually, using a simple closure/method with tracking is fine.
+        frame.pack(side="left", padx=10)
         
         knob_helper = {
             "reg": reg,
@@ -96,37 +95,26 @@ class Chorus(EffectBase):
         def process_write(helper):
             if self.client and self.client.connected and self.power_state:
                 try:
-                    # Access lock via app master
                     lock = getattr(self.master, 'modbus_lock', None)
                     if lock:
                         with lock:
                             self.client.write_register(address=helper["reg"], value=helper["value"], slave=1)
                 except Exception as e:
-                    print(f"Chorus Knob Write Error: {e}")
+                    print(f"Phaser Knob Write Error: {e}")
             helper["write_pending"] = False
 
-        knob = RotaryKnob(frame, width=70, height=70, start_val=32767, command=on_change, bg_color="#4169E1")
+        knob = RotaryKnob(frame, width=70, height=70, start_val=32767, command=on_change, bg_color="#8A2BE2")
         knob.pack()
         
         ctk.CTkLabel(frame, text=label, font=("Arial", 12, "bold"), text_color="white").pack(pady=(5, 0))
         
-        # Store for sync
         self.knobs.append({"knob": knob, "reg": reg})
 
-    def on_knob_change(self, value, reg):
-        # Deprecated by local closure above
-        pass
-
-    def _write_knob(self, reg, val):
-         # Deprecated
-         pass
-
     def _update_power_ui(self):
-        # Override Base Effect UI update to use our custom LED
         if self.power_state:
-            self.led_canvas.itemconfig(self.led_id, fill="#ff0000", outline="#ff3333") # Red ON
+            self.led_canvas.itemconfig(self.led_id, fill="#ff0000", outline="#ff3333")
         else:
-            self.led_canvas.itemconfig(self.led_id, fill="#330000", outline="#550000") # Dark OFF
+            self.led_canvas.itemconfig(self.led_id, fill="#330000", outline="#550000")
 
     def on_power_on(self):
         self._sync_knobs()
@@ -147,7 +135,7 @@ class Chorus(EffectBase):
                         val = rr.registers[0]
                         self.after(0, lambda k=item["knob"], v=val: k.set(v))
                 except Exception as e:
-                    print(f"Read Error Chorus {item['reg']}: {e}")
+                    print(f"Read Error Phaser {item['reg']}: {e}")
             self.after(500, lambda: setattr(self, 'updating_from_device', False))
         except Exception as e:
             self.updating_from_device = False

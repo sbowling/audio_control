@@ -1,1 +1,8 @@
-{ "name": "Phaser", "power_register": 125, "power_bit": 2 }
+{
+  "name": "Phaser",
+  "power_register": 125,
+  "power_bit": 2,
+  "rate_register": 80,
+  "depth_register": 81,
+  "feedback_register": 82
+}
