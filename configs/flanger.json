@@ -2,7 +2,7 @@
   "name": "Flanger",
   "power_register": 125,
   "power_bit": 6,
-  "rate_register": 70,
-  "depth_register": 71,
-  "regen_register": 72
+  "rate_register": 55,
+  "depth_register": 56,
+  "regen_register": 57
 }

@@ -1,1 +1,8 @@
-{ "name": "Reverb", "power_register": 125, "power_bit": 7 }
+{
+  "name": "Reverb",
+  "power_register": 125,
+  "power_bit": 7,
+  "room_size_register": 40,
+  "damping_register": 41,
+  "mix_register": 42
+}

@@ -2,5 +2,5 @@
   "name": "Wah",
   "power_register": 125,
   "power_bit": 3,
-  "position_register": 90
+  "position_register": 65
 }

@@ -1,0 +1,7 @@
+{
+  "name": "Effects Mixer",
+  "power_register": 125,
+  "power_bit": 15,
+  "input_registers": [70, 71, 72, 73, 74, 75, 76, 77],
+  "output_register": 78
+}
