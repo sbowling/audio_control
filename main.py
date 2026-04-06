@@ -7,9 +7,78 @@ from effects.chorus import Chorus
 from effects.flanger import Flanger
 from effects.phaser import Phaser
 from effects.wah import Wah
-from effects.other_effects import Echo, Reverb
+from effects.reverb import Reverb
+from effects.echo import Echo
+from effects.mixer import Mixer
 import os
 import threading
+
+class CPUBarGraph(ctk.CTkFrame):
+    def __init__(self, master, register_addr, app_instance, **kwargs):
+        super().__init__(master, **kwargs)
+        self.register_addr = register_addr
+        self.app = app_instance
+        
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+        
+        # Label
+        ctk.CTkLabel(self, text="CPU LOAD", font=("Arial", 12, "bold"), text_color="#aaaaaa").grid(row=0, column=0, pady=(5, 0))
+        
+        # Bar Canvas
+        self.bar_canvas = ctk.CTkCanvas(self, width=400, height=30, bg="#222222", highlightthickness=0)
+        self.bar_canvas.grid(row=1, column=0, padx=10, pady=5)
+        
+        # Draw empty bar background
+        self.bar_id = self.bar_canvas.create_rectangle(5, 5, 395, 25, fill="#333333", outline="#555555")
+        self.fill_id = self.bar_canvas.create_rectangle(5, 5, 5, 25, fill="#00ff00", outline="")
+        
+        # Percentage Label
+        self.pct_label = ctk.CTkLabel(self, text="0%", font=("Consolas", 14, "bold"), text_color="#00ff00")
+        self.pct_label.grid(row=1, column=1, padx=10)
+        
+        self.polling = True
+        self.poll()
+
+    def poll(self):
+        if not self.polling:
+            return
+        
+        if self.app.connected and self.app.client:
+            threading.Thread(target=self._read_cpu, daemon=True).start()
+        
+        self.after(1000, self.poll) # Poll every 1000ms (1 second)
+
+    def _read_cpu(self):
+        try:
+            with self.app.modbus_lock:
+                rr = self.app.client.read_holding_registers(address=self.register_addr, count=1, slave=1)
+            
+            if not rr.isError():
+                val = rr.registers[0]
+                # 65535 = 100%
+                pct = (val / 65535.0) * 100.0
+                pct = min(100.0, pct) # Cap at 100%
+                self.after(0, lambda p=pct: self.update_bar(p))
+        except Exception as e:
+            print(f"CPU Read Error: {e}")
+
+    def update_bar(self, pct):
+        # Map 0-100 to bar width (5 to 395)
+        width = 5 + (pct / 100.0) * 390
+        self.bar_canvas.coords(self.fill_id, 5, 5, width, 25)
+        self.pct_label.configure(text=f"{pct:.0f}%")
+        
+        # Change color based on load
+        if pct > 80:
+            color = "#ff0000" # Red for high
+        elif pct > 50:
+            color = "#ffff00" # Yellow for medium
+        else:
+            color = "#00ff00" # Green for low
+        self.bar_canvas.itemconfig(self.fill_id, fill=color)
+        self.pct_label.configure(text_color=color)
+
 
 class AudioControlApp(ctk.CTk):
     def __init__(self):
@@ -54,26 +123,34 @@ class AudioControlApp(ctk.CTk):
             ("Chorus", Chorus, "configs/chorus.json"),
             ("Flanger", Flanger, "configs/flanger.json"),
             ("Reverb", Reverb, "configs/reverb.json"),
+            ("Mixer", Mixer, "configs/mixer.json"),
         ]
         
         # Grid logic
         self.grid_frame.grid_columnconfigure(0, weight=1)
         self.grid_frame.grid_columnconfigure(1, weight=1)
+        self.grid_frame.grid_columnconfigure(2, weight=1)
         
         for i, (name, cls, config) in enumerate(self.effects_data):
-            row = i // 2
-            col = i % 2
+            row = i // 3
+            col = i % 3
             
             btn = ctk.CTkButton(
                 self.grid_frame, 
                 text=name, 
-                font=("Arial", 16, "bold"),
-                height=80,
+                font=("Arial", 14, "bold"),
+                height=60,
                 corner_radius=10,
-                # Lambda capture requires explicit args or partial
                 command=lambda n=name, c=cls, cfg=config: self.open_effect(n, c, cfg)
             )
             btn.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+
+        # --- CPU Load Bar Graph ---
+        self.cpu_frame = ctk.CTkFrame(self, fg_color="#1a1a1a", corner_radius=0)
+        self.cpu_frame.pack(side="bottom", fill="x", padx=20, pady=(0, 10))
+        
+        self.cpu_bar = CPUBarGraph(self.cpu_frame, register_addr=124, app_instance=self, fg_color="#1a1a1a")
+        self.cpu_bar.pack(pady=5)
 
     def get_com_ports(self):
         ports = serial.tools.list_ports.comports()
